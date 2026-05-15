@@ -5,14 +5,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
 
-# Configure Streamlit application settings and layout parameters
 st.set_page_config(
     page_title="Customer Churn Analytics Platform",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Apply custom styling for dashboard theme and component aesthetics
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
@@ -314,7 +312,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Render primary dashboard header with branding and context
 st.markdown("""
 <div class='main-header'>
     <h1> Customer Churn Analytics Platform</h1>
@@ -322,7 +319,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Load customer churn dataset with caching for performance optimization
 @st.cache_data
 def load_data():
     return pd.read_csv("Churn_Modelling.csv")
@@ -337,7 +333,6 @@ except FileNotFoundError:
     """)
     st.stop()
 
-# Verify dataset contains required columns for analysis pipeline
 required_cols = [
     "CustomerId","Geography","Tenure","Balance",
     "NumOfProducts","IsActiveMember","Exited"
@@ -355,7 +350,6 @@ if missing:
     """)
     st.stop()
 
-# Standardize column names for consistency across analysis modules
 df = df.rename(columns={
     "Exited":"Churn",
     "Geography":"Country",
@@ -364,7 +358,6 @@ df = df.rename(columns={
     "IsActiveMember":"ActiveMember"
 })
 
-# Generate derived customer attributes for enhanced risk segmentation
 def tenure_group(x):
     if x <= 2: return "New (0–2 yrs)"
     elif x <= 5: return "Mid (3–5 yrs)"
@@ -382,7 +375,6 @@ def value_segment(x):
 df["CustomerValue"] = df["Balance"].apply(value_segment)
 df["Engagement"] = df["ActiveMember"].map({1:"Engaged", 0:"Low Engagement"})
 
-# Build predictive model using gradient boosting for churn classification
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix, precision_recall_fscore_support
@@ -411,7 +403,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.25, random_state=42, stratify=y
 )
 
-# Configure and train XGBoost classifier with optimal hyperparameters
 model = XGBClassifier(
     n_estimators=250,
     learning_rate=0.08,
@@ -430,13 +421,11 @@ y_prob = model.predict_proba(X_test)[:,1]
 model_auc = roc_auc_score(y_test, y_prob)
 precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='binary')
 
-# Extract feature importance scores to identify primary churn drivers
 feature_importance = pd.DataFrame({
     'feature': features,
     'importance': model.feature_importances_
 }).sort_values('importance', ascending=False)
 
-# Configure business parameters and display model diagnostics in sidebar
 with st.sidebar:
     st.markdown("### Business Configuration")
     
@@ -465,11 +454,9 @@ with st.sidebar:
     st.metric("Recall", f"{recall:.3f}")
     st.metric("F1-Score", f"{f1:.3f}")
 
-# Calculate customer lifetime value metrics based on balance and tenure
 df["EstimatedMonthlyValue"] = df["Balance"] * monthly_yield
 df["EstimatedCLV"] = df["EstimatedMonthlyValue"] * (df["Tenure"] + 1)
 
-# Display executive-level KPIs for portfolio health assessment
 total_customers = len(df)
 churned = df[df["Churn"]==1].shape[0]
 active = total_customers - churned
@@ -512,7 +499,6 @@ with col4:
         help="Overall customer churn percentage"
     )
 
-# Quantify financial impact of customer attrition on revenue streams
 st.markdown("<div class='section-header'>Financial Impact Analysis</div>", unsafe_allow_html=True)
 
 total_clv = df["EstimatedCLV"].sum()
@@ -548,7 +534,7 @@ with col3:
     )
 
 with col4:
-    potential_savings = lost_clv * 0.3  # Assume 30% reduction
+    potential_savings = lost_clv * 0.3  
     roi = (potential_savings - (churned * retention_cost)) / (churned * retention_cost)
     st.metric(
         "Potential Savings (30%)",
@@ -557,7 +543,6 @@ with col4:
         help="Estimated savings with 30% churn reduction"
     )
 
-# Provide interactive controls for segment-level data exploration
 st.markdown("<div class='section-header'>Advanced Filters & Segmentation</div>", unsafe_allow_html=True)
 
 with st.expander("Apply Filters", expanded=True):
@@ -592,7 +577,6 @@ with st.expander("Apply Filters", expanded=True):
             help="Filter by customer tenure group"
         )
 
-# Process user selections and filter dataset to target segment
 filtered_df = df[df["Country"].isin(country_filter)].copy()
 
 if value_filter != "All":
@@ -633,8 +617,7 @@ with col3:
         help="Total CLV of segment"
     )
 
-# Classify customers into risk tiers based on behavioral patterns
-st.markdown("<div class='section-header'>🚦 Customer Risk Intelligence</div>", unsafe_allow_html=True)
+st.markdown("<div class='section-header'>Customer Risk Intelligence</div>", unsafe_allow_html=True)
 
 def risk_group(row):
     if row["CustomerValue"]=="High Value" and row["Engagement"]=="Low Engagement":
@@ -661,7 +644,6 @@ priority_map = {
 filtered_df["RiskPriority"] = filtered_df["RiskGroup"].map(priority_map)
 filtered_df["ChurnStatus"] = filtered_df["Churn"].map({1:"Churned", 0:"Active"})
 
-# Aggregate risk metrics across customer segments for comparison
 risk_dist = filtered_df.groupby("RiskGroup").agg({
     "CustomerId": "count",
     "EstimatedCLV": "sum",
@@ -709,7 +691,6 @@ with col2:
     )
     st.plotly_chart(fig_risk, use_container_width=True)
 
-# Isolate customers requiring immediate retention intervention
 st.markdown("##### High-Priority Customers Requiring Immediate Action")
 
 high_risk_df = filtered_df[
@@ -738,7 +719,6 @@ if len(high_risk_df) > 0:
 else:
     st.info("No high-risk customers in the selected segment")
 
-# Render comprehensive visual analytics across multiple dimensions
 st.markdown("<div class='section-header'>Churn Analytics & Insights</div>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -748,14 +728,12 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "ML Insights"
 ])
 
-# Define cohesive color palette for visual consistency
 colors_gradient = ['#667eea', '#764ba2', '#f093fb', '#4facfe']
 
 with tab1:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Analyze geographic patterns in customer retention rates
         churn_country = filtered_df.groupby("Country").agg({
             "Churn": "mean",
             "CustomerId": "count",
@@ -795,7 +773,6 @@ with tab1:
         st.plotly_chart(fig1, use_container_width=True)
     
     with col2:
-        # Compare revenue concentration across geographic markets
         fig2 = go.Figure()
         fig2.add_trace(go.Bar(
             x=churn_country["Country"],
@@ -824,7 +801,6 @@ with tab1:
         
         st.plotly_chart(fig2, use_container_width=True)
     
-    # Visualize churn intensity across country-value segment combinations
     st.markdown("##### Geographic Performance Matrix")
     country_matrix = filtered_df.groupby(["Country", "CustomerValue"]).agg({
         "Churn": "mean",
@@ -860,7 +836,6 @@ with tab2:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Examine churn vulnerability across customer age cohorts
         age_bins = [0, 30, 40, 50, 60, 100]
         age_labels = ['<30', '30-40', '40-50', '50-60', '60+']
         filtered_df['AgeGroup'] = pd.cut(filtered_df['Age'], bins=age_bins, labels=age_labels)
@@ -896,7 +871,6 @@ with tab2:
         st.plotly_chart(fig3, use_container_width=True)
     
     with col2:
-        # Compare retention performance between gender segments
         gender_data = filtered_df.groupby("Gender").agg({
             "Churn": "mean",
             "CustomerId": "count"
@@ -946,7 +920,6 @@ with tab2:
         
         st.plotly_chart(fig4, use_container_width=True)
     
-    # Track customer lifecycle patterns and tenure-based attrition trends
     st.markdown("##### Customer Lifecycle: Churn Trend by Tenure")
     
     tenure_trend = filtered_df.groupby("Tenure").agg({
@@ -1000,7 +973,6 @@ with tab3:
     col1, col2 = st.columns(2)
     
     with col1:
-        # Assess churn risk across customer value tiers
         value_churn = filtered_df.groupby("CustomerValue").agg({
             "Churn": "mean",
             "EstimatedCLV": "sum",
@@ -1050,7 +1022,6 @@ with tab3:
         st.plotly_chart(fig6, use_container_width=True)
     
     with col2:
-        # Measure impact of customer engagement on retention outcomes
         engagement_churn = filtered_df.groupby("Engagement").agg({
             "Churn": "mean",
             "CustomerId": "count"
@@ -1087,7 +1058,6 @@ with tab3:
         
         st.plotly_chart(fig7, use_container_width=True)
     
-    # Evaluate relationship between product portfolio and customer loyalty
     st.markdown("##### Product Holding Patterns")
     
     products_churn = filtered_df.groupby("Products").agg({
@@ -1195,7 +1165,6 @@ with tab4:
     with col2:
         st.markdown("**Model Performance Metrics**")
         
-        # Visualize model classification performance on test data
         cm = confusion_matrix(y_test, y_pred)
         
         fig10 = go.Figure(data=go.Heatmap(
@@ -1220,7 +1189,6 @@ with tab4:
         
         st.plotly_chart(fig10, use_container_width=True)
         
-        # Present consolidated model evaluation statistics
         st.markdown("**Performance Summary**")
         st.markdown(f"""
         - **Accuracy**: {((cm[0,0] + cm[1,1]) / cm.sum()):.3f}
@@ -1230,7 +1198,6 @@ with tab4:
         - **ROC-AUC**: {model_auc:.3f}
         """)
     
-    # Translate model outputs into actionable business intelligence
     st.markdown("---")
     st.markdown("##### Key Model Insights")
     
@@ -1257,7 +1224,6 @@ with tab4:
     </div>
     """, unsafe_allow_html=True)
 
-# Enable financial modeling for retention initiative planning
 st.markdown("<div class='section-header'> Retention Strategy ROI Calculator</div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([2, 1])
@@ -1288,7 +1254,6 @@ with col2:
     st.metric("Per-Customer Cost", f"₹{retention_cost:,}")
     st.metric("Target Customer Count", f"{int(churned * (intervention_rate/100)):,}")
 
-# Compute ROI metrics based on retention strategy parameters
 current_loss = lost_clv
 targeted_customers = int(churned * (intervention_rate / 100))
 total_intervention_cost = targeted_customers * retention_cost
@@ -1331,7 +1296,6 @@ with col4:
         help="Net financial benefit of retention program"
     )
 
-# Compare financial outcomes across retention strategy scenarios
 st.markdown("##### Financial Scenario Comparison")
 
 scenarios = pd.DataFrame({
@@ -1400,8 +1364,7 @@ fig_roi.update_layout(
 
 st.plotly_chart(fig_roi, use_container_width=True)
 
-# Surface data-driven recommendations for retention strategy execution
-st.markdown("<div class='section-header'>🎯 Strategic Action Plan</div>", unsafe_allow_html=True)
+st.markdown("<div class='section-header'>Strategic Action Plan</div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
@@ -1437,7 +1400,6 @@ with col2:
     </div>
     """, unsafe_allow_html=True)
 
-# Provide downloadable reports for offline analysis and stakeholder distribution
 st.markdown("<div class='section-header'> Export & Reporting</div>", unsafe_allow_html=True)
 
 col1, col2, col3 = st.columns(3)
@@ -1469,7 +1431,6 @@ with col3:
         use_container_width=True
     )
 
-# Display platform attribution and technical stack information
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #8892b0; padding: 2rem 0;'>
