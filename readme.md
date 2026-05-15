@@ -74,7 +74,7 @@ Risk segmentation
 ML feature importance
 ROI simulation
 
-roject Structure
+project Structure
 ├── app.py                     # Streamlit dashboard
 ├── Churn_Modelling.csv       # Dataset
 ├── requirements.txt          # Dependencies
